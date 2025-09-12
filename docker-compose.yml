@@ -1,0 +1,37 @@
+name: domus_images
+
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: "root"
+      MYSQL_DATABASE: domus_LOCAL
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$${MYSQL_ROOT_PASSWORD}\" mysqladmin ping -h 127.0.0.1 -uroot --silent || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 40s
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  downloader:
+    build:
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DB_HOST: MySQL-8.0          # <<< вот это ключевое
+      DB_PORT: "3306"
+      DB_NAME: domus_LOCAL
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_TABLE_PRODUCTS: products
+    volumes:
+      - ./images:/app/images
+    command: ["--fast", "--no-head", "--concurrency", "8", "--progress", "tqdm"]
+
+volumes:
+  mysql-data:
+
